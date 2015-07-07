@@ -34,93 +34,65 @@
  
 //////// Arduino pins Connections//////////////////////////////////////////////////////////////////////////////////
 
-// A0 - Voltage divider (solar)
-// A1 - ACS 712 Out
-// A2 - Voltage divider (battery)
-// A4 - LCD SDA
-// A5 - LCD SCL
-// D2 - ESP8266 Tx
-// D3 - ESP8266 Rx through the voltage divider
-// D5 - LCD back control button
-// D6 - Load Control 
-// D8 - 2104 MOSFET driver SD
-// D9 - 2104 MOSFET driver IN  
-// D11- Green LED
-// D12- Yellow LED
-// D13- Red LED
+#define ANALOG_PIN_SOLAR_VOLTAGE_DIVIDER 0  // A0 - Voltage divider (solar)
+#define  SOLAR_VOLTAGE_DIVIDER_R1 100000    //  voltage divider R1 in ohms
+#define  SOLAR_VOLTAGE_DIVIDER_R2 20000     //  voltage divider R2 in ohms
+#define  SOL_VOLTS_SCALE 0.029296875        // the scaling value for raw adc reading to get solar volts  // (5/1024)*(R1+R2)/R2 // R1=100k and R2=20k
+#define ANALOG_PIN_SOLAR_AMPS_FROM_ACS712 1 // A1 - ACS 712 Out
+#define  SOL_AMPS_SCALE (5.0/(1024*0.185))  // the scaling value for raw adc reading to get solar amps
+#define ANALOG_PIN_BATTERY_VOLTAGE 2        // A2 - Voltage divider (battery)
+#define  BATTERY_VOLTAGE_DIVIDER_R1 100000  //  voltage divider R1 in ohms
+#define  BATTERY_VOLTAGE_DIVIDER_R2 20000   //  voltage divider R2 in ohms
+#define ANALOG_PIN_LCD_SDA 4                // A4 - LCD SDA
+#define ANALOG_PIN_LCD_SCL 5                // A5 - LCD SCL
+#define DIGITAL_PIN_ESP8266_TX 2            // D2 - ESP8266 Tx
+#define DIGITAL_PIN_ESP8266_RX 3            // D3 - ESP8266 Rx through the voltage divider
+#define DIGITAL_PIN_BACKLIGHT_CONTROL 5     // D5 - LCD backlight control button (INPUT)
+#define DIGITAL_PIN_LOAD_CONTROL 6          // D6 - Load Control (OUTPUT)
+#define DIGITAL_PIN_2104_MOSFET_SD 8        // D8 - 2104 MOSFET driver SD (OUTPUT)
+#define DIGITAL_PIN_2104_MOSFET_IN 9        // D9 - 2104 MOSFET driver IN (OUTPUT)
+#define DIGITAL_PIN_GREEN_LED 11            // D11- Green LED (OUTPUT)
+#define DIGITAL_PIN_YELLOW_LED 12           // D12- Yellow LED (OUTPUT)
+#define DIGITAL_PIN_RED 13                  // D13- Red LED (OUTPUT)
 
-// Full scheatic is given at http://www.instructables.com/files/orig/F9A/LLR8/IAPASVA1/F9ALLR8IAPASVA1.pdf
+// Full schematic is given at http://www.instructables.com/files/orig/F9A/LLR8/IAPASVA1/F9ALLR8IAPASVA1.pdf
 
-///////// Definitions /////////////////////////////////////////////////////////////////////////////////////////////////
+// battery voltages
+#define MIN_BAT_VOLTS 11.00         // Don't turn on the charger unless we see at least this many volts
+#define LVD 11.5                    // Shut down the load if the voltage is below this point (LOAD_ALGORITHM 0)
+#define BATT_FLOAT 13.60            // Stop charging above this voltage
 
-
+///////// CUSTOMIZE your controller here /////////////////
 // Turn this on to use the ESP8266 chip. If you set this to 0, the periodic updates will not happen
 #define ENABLE_DATALOGGER 0
+// If you have the datalogger enabled, set your API key here
+String apiKey = "DPK8RMTFY2B1XCAF";
 
 // Load control algorithm
 // 0 - NIGHT LIGHT: Load ON when there is no solar power and battery is above LVD (low voltage disconnect)
 // 1 - POWER DUMP: Load ON when there is solar power and the battery is above BATT_FLOAT (charged)
 #define LOAD_ALGORITHM 0
 
-#define SOL_AMPS_CHAN 1                // Defining the adc channel to read solar amps
-#define SOL_VOLTS_CHAN 0               // defining the adc channel to read solar volts
-#define BAT_VOLTS_CHAN 2               // defining the adc channel to read battery volts
 #define AVG_NUM 8                      // number of iterations of the adc routine to average the adc readings
 
 // ACS 712 Current Sensor is used. Current Measured = (5/(1024 *0.185))*ADC - (2.5/0.185) 
-
-#define SOL_AMPS_SCALE  0.026393581        // the scaling value for raw adc reading to get solar amps   // 5/(1024*0.185)
-#define SOL_VOLTS_SCALE 0.029296875        // the scaling value for raw adc reading to get solar volts  // (5/1024)*(R1+R2)/R2 // R1=100k and R2=20k
 #define BAT_VOLTS_SCALE 0.029296875        // the scaling value for raw adc reading to get battery volts 
 
-#define PWM_PIN 9                    // the output pin for the pwm (only pin 9 avaliable for timer 1 at 50kHz)
-#define PWM_ENABLE_PIN 8            // pin used to control shutoff function of the IR2104 MOSFET driver (hight the mosfet driver is on)
 #define PWM_FULL 1023                // the actual value used by the Timer1 routines for 100% pwm duty cycle
 #define PWM_MAX 100                  // the value for pwm duty cyle 0-100%
 #define PWM_MIN 60                  // the value for pwm duty cyle 0-100% (below this value the current running in the system is = 0)
-#define PWM_START 90                // the value for pwm duty cyle 0-100%
 #define PWM_INC 1                    //the value the increment to the pwm value for the ppt algorithm
 
-#define TRUE 1
-#define FALSE 0
-#define ON TRUE
-#define OFF FALSE
-
-#define TURN_ON_MOSFETS digitalWrite(PWM_ENABLE_PIN, HIGH)      // enable MOSFET driver
-#define TURN_OFF_MOSFETS digitalWrite(PWM_ENABLE_PIN, LOW)      // disable MOSFET driver
+#define TURN_ON_MOSFETS digitalWrite(DIGITAL_PIN_2104_MOSFET_SD, HIGH)      // enable MOSFET driver
+#define TURN_OFF_MOSFETS digitalWrite(DIGITAL_PIN_2104_MOSFET_SD, LOW)      // disable MOSFET driver
 
 #define ONE_SECOND 50000            //count for number of interrupt in 1 second on interrupt period of 20us
 
-#define LOW_SOL_WATTS 5.00          //value of solar watts // this is 5.00 watts
-#define MIN_SOL_WATTS 1.00          //value of solar watts // this is 1.00 watts
-#define MIN_BAT_VOLTS 11.00         //value of battery voltage // this is 11.00 volts          
-#define MAX_BAT_VOLTS 14.10         //value of battery voltage// this is 14.10 volts
-#define BATT_FLOAT 13.60            // battery voltage we want to stop charging at
-#define HIGH_BAT_VOLTS 13.00        //value of battery voltage // this is 13.00 volts 
-#define LVD 11.5                    //Low voltage disconnect setting for a 12V system
-#define OFF_NUM 9                   // number of iterations of off charger state
+#define LOW_SOL_WATTS 5.00          // Below this many watts, we run at 100% pwm
+#define MIN_SOL_WATTS 1.00          // Below this many watts, we shut off the charger
+#define OFF_NUM 9                   // We stay off for this many rounds before thinking about turning on again
   
-//------------------------------------------------------------------------------------------------------
-//Defining led pins for indication
-#define LED_RED 11
-#define LED_GREEN 12
-#define LED_YELLOW 13
-//-----------------------------------------------------------------------------------------------------
-// Defining load control pin
-#define LOAD_PIN 6       // pin-2 is used to control the load
-  
-//-----------------------------------------------------------------------------------------------------
-// Defining lcd back light pin
-#define BACK_LIGHT_PIN 5       // pin-5 is used to control the lcd back light
-
-// ---------------------------For ESP8266--------------------------------------------------------------
-
-// replace with your channel's thingspeak API key
-String apiKey = "DPK8RMTFY2B1XCAF";
-// connect 2 to TX of Serial USB
-// connect 3 to RX of serial USB
-
-SoftwareSerial ser(2,3); // RX, TX
+SoftwareSerial ser(DIGITAL_PIN_ESP8266_TX,DIGITAL_PIN_ESP8266_RX); // TX, RX
 //---------------------------------------------------------------------------------------------------------
 
 //------------------------------------------------------------------------------------------------------
@@ -253,7 +225,7 @@ LiquidCrystal_I2C lcd(0x27, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);  // Set the LCD I
 
 void setup()                           // run once, when the sketch starts
 {
-  pinMode(PWM_ENABLE_PIN, OUTPUT);     // sets the digital pin as output
+  pinMode(DIGITAL_PIN_2104_MOSFET_SD, OUTPUT);     // sets the digital pin as output
   TURN_OFF_MOSFETS;                    // turn off MOSFET driver chip
   charger_state = off;                 // start with charger state as off
   lcd.begin(20,4);                     // initialize the lcd for 16 chars 2 lines, turn on backlight
@@ -267,20 +239,22 @@ void setup()                           // run once, when the sketch starts
   lcd.createChar(PWM_ICON,_PWM_icon);
   lcd.createChar(SOLAR_ICON,solar_icon);
   lcd.createChar('\\', backslash_char);
-  pinMode(LED_RED, OUTPUT);
-  pinMode(LED_GREEN, OUTPUT);
-  pinMode(LED_YELLOW, OUTPUT);
+  pinMode(DIGITAL_PIN_RED_LED, OUTPUT);
+  pinMode(DIGITAL_PIN_GREEN_LED, OUTPUT);
+  pinMode(DIGITAL_PIN_YELLOW_LED, OUTPUT);
   Timer1.initialize(20);               // initialize timer1, and set a 20uS period
-  Timer1.pwm(PWM_PIN, 0);              // setup pwm on pin 9, 0% duty cycle
+  Timer1.pwm(DIGITAL_PIN_2104_MOSFET_IN, 0);              // setup pwm on pin 9, 0% duty cycle
   Timer1.attachInterrupt(callback);    // attaches callback() as a timer overflow interrupt
   Serial.begin(9600);                  // open the serial port at 9600 bps:
+#if ENABLE_DATALOGGER
   ser.begin(9600);                     // enable software serial
   ser.println("AT+RST");               // reset ESP8266
-  pwm = PWM_START;                     //starting value for pwm  
-  pinMode(BACK_LIGHT_PIN, INPUT);
-  pinMode(LOAD_PIN,OUTPUT);
-  digitalWrite(LOAD_PIN,LOW);          // default load state is OFF
-  digitalWrite(BACK_LIGHT_PIN,LOW);    //  default LCd back light is OFF
+#endif
+  pwm = PWM_MAX;
+  pinMode(DIGITAL_PIN_BACKLIGHT_CONTROL, INPUT);
+  pinMode(DIGITAL_PIN_LOAD_CONTROL,OUTPUT);
+  digitalWrite(DIGITAL_PIN_LOAD_CONTROL,LOW);          // default load state is OFF
+  digitalWrite(DIGITAL_PIN_BACKLIGHT_CONTROL,LOW);    //  default LCd back light is OFF
 
   // display the constant stuff on the LCD
   lcd.setCursor(0, 0);
@@ -331,9 +305,9 @@ int read_adc(int channel){
 //------------------------------------------------------------------------------------------------------
 void read_data(void) {
   
-  sol_amps = (read_adc(SOL_AMPS_CHAN) * SOL_AMPS_SCALE -13.51);    //input of solar amps
-  sol_volts = read_adc(SOL_VOLTS_CHAN) * SOL_VOLTS_SCALE;          //input of solar volts 
-  bat_volts = read_adc(BAT_VOLTS_CHAN) * BAT_VOLTS_SCALE;          //input of battery volts 
+  sol_amps = (read_adc(ANALOG_PIN_SOLAR_AMPS_FROM_ACS712) * SOL_AMPS_SCALE -13.51);    //input of solar amps
+  sol_volts = read_adc(ANALOG_PIN_SOLAR_VOLTAGE_DIVIDER) * SOL_VOLTS_SCALE;          //input of solar volts 
+  bat_volts = read_adc(ANALOG_PIN_BATTERY_VOLTAGE) * BAT_VOLTS_SCALE;          //input of battery volts 
   sol_watts = sol_amps * sol_volts ;                               //calculations of solar watts                  
 }
 
@@ -361,12 +335,10 @@ void set_pwm_duty(void) {
     pwm = PWM_MIN;
   }
   if (pwm < PWM_MAX) {
-    Timer1.pwm(PWM_PIN,(PWM_FULL * (long)pwm / 100), 20);  // use Timer1 routine to set pwm duty cycle at 20uS period
-    //Timer1.pwm(PWM_PIN,(PWM_FULL * (long)pwm / 100));
+    Timer1.pwm(DIGITAL_PIN_2104_MOSFET_IN,(PWM_FULL * (long)pwm / 100), 20);  // use Timer1 routine to set pwm duty cycle at 20uS period
   }												
   else if (pwm == PWM_MAX) {				   // if pwm set to 100% it will be on full but we have 
-    Timer1.pwm(PWM_PIN,(PWM_FULL - 1), 20);                // keep switching so set duty cycle at 99.9% 
-    //Timer1.pwm(PWM_PIN,(PWM_FULL - 1));              
+    Timer1.pwm(DIGITAL_PIN_2104_MOSFET_IN,(PWM_FULL - 1), 20);                // keep switching so set duty cycle at 99.9% 
   }												
 }	
 
@@ -498,7 +470,7 @@ void load_control(){
 void load_on(boolean new_status) {
   if (load_status != new_status) {
     load_status = new_status;
-    digitalWrite(LOAD_PIN, new_status ? HIGH : LOW);
+    digitalWrite(DIGITAL_PIN_LOAD_CONTROL, new_status ? HIGH : LOW);
   }
 }
 
@@ -567,11 +539,11 @@ void led_output(void)
 {
   static char last_lit;
   if(bat_volts > 14.1 )
-      light_led(LED_YELLOW);
+      light_led(DIGITAL_PIN_YELLOW_LED);
   else if(bat_volts > 11.9)
-      light_led(LED_GREEN);
+      light_led(DIGITAL_PIN_GREEN_LED);
   else
-      light_led(LED_RED);
+      light_led(DIGITAL_PIN_RED_LED);
 }
 
 //------------------------------------------------------------------------------------------------------
@@ -580,7 +552,7 @@ void led_output(void)
 void lcd_display()
 {
   static bool current_backlight_state = -1;
-  back_light_pin_State = digitalRead(BACK_LIGHT_PIN);
+  back_light_pin_State = digitalRead(DIGITAL_PIN_BACKLIGHT_CONTROL);
   if (current_backlight_state != back_light_pin_State) {
     current_backlight_state = back_light_pin_State;
     if (back_light_pin_State == HIGH)
