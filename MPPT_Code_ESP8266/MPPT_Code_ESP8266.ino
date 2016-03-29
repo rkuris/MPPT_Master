@@ -60,7 +60,7 @@
 // Load control algorithm
 // 0 - NIGHT LIGHT: Load ON when there is no solar power and battery is above LVD (low voltage disconnect)
 // 1 - POWER DUMP: Load ON when there is solar power and the battery is above BATT_FLOAT (charged)
-#define LOAD_ALGORITHM 0
+#define LOAD_ALGORITHM 1
 
 #define SOL_AMPS_CHAN 1                // Defining the adc channel to read solar amps
 #define SOL_VOLTS_CHAN 0               // defining the adc channel to read solar volts
@@ -204,24 +204,14 @@ byte solar_icon[8] = //icon for termometer
 #define PWM_ICON 7
 byte _PWM_icon[8]=
 {
+  0b00000,
   0b11101,
   0b10101,
   0b10101,
   0b10101,
   0b10101,
-  0b10101,
-  0b10101,
   0b10111,
-};
-byte backslash_char[8] {
-  0b10000,
-  0b10000,
-  0b01000,
-  0b01000,
-  0b00100,
-  0b00100,
-  0b00010,
-  0b00010,
+  0b00000,
 };
 //-------------------------------------------------------------------------------------------------------
 
@@ -245,7 +235,7 @@ enum charger_mode {off, on, bulk, bat_float} charger_state;    // enumerated var
 // set the LCD address to 0x27 for a 20 chars 4 line display
 // Set the pins on the I2C chip used for LCD connections:
 //                    addr, en,rw,rs,d4,d5,d6,d7,bl,blpol
-LiquidCrystal_I2C lcd(0x27, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);  // Set the LCD I2C address
+LiquidCrystal_I2C lcd(0x27, 20, 4);  // Set the LCD I2C address
 
 
 //------------------------------------------------------------------------------------------------------
@@ -258,7 +248,7 @@ void setup()                           // run once, when the sketch starts
   TURN_OFF_MOSFETS;                    // turn off MOSFET driver chip
   charger_state = off;                 // start with charger state as off
 
-  lcd.begin(20,4);   // initialize the lcd for 16 chars 2 lines, turn on backlight
+  lcd.begin();   // initialize the lcd for 16 chars 2 lines, turn on backlight
 
   // create the LCD special characters. Characters 0-5 are the various battery fullness icons
   // icon 7 is for the PWM icon, and icon 8 is for the solar array
@@ -268,7 +258,6 @@ void setup()                           // run once, when the sketch starts
   }
   lcd.createChar(PWM_ICON,_PWM_icon);
   lcd.createChar(SOLAR_ICON,solar_icon);
-  lcd.createChar('\\', backslash_char);
   pinMode(LED_RED, OUTPUT);
   pinMode(LED_GREEN, OUTPUT);
   pinMode(LED_YELLOW, OUTPUT);
@@ -598,7 +587,7 @@ void lcd_display()
  lcd.print("V ");
  lcd.setCursor(0, 2);
  lcd.print(sol_amps);
- lcd.print("A");  
+ lcd.print("A ");  
  lcd.setCursor(0, 3);
  lcd.print(sol_watts);
  lcd.print("W "); 
