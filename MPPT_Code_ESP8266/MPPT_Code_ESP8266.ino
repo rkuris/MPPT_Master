@@ -27,7 +27,7 @@
 
 
 #include "TimerOne.h"                // using Timer1 library from http://www.arduino.cc/playground/Code/Timer1
-#include <LiquidCrystal_I2C.h>      // using the LCD I2C Library from https://bitbucket.org/fmalpartida/new-liquidcrystal/downloads
+#include "LiquidCrystal_I2C.h"      // using the LCD I2C Library from https://bitbucket.org/fmalpartida/new-liquidcrystal/downloads
 #include <Wire.h>  
 #include <SoftwareSerial.h>         // using the Software Serial library Ref : http://www.arduino.cc/en/Reference/SoftwareSerialConstructor
 //----------------------------------------------------------------------------------------------------------
@@ -41,8 +41,8 @@
 #define ANALOG_PIN_SOLAR_AMPS_FROM_ACS712 1 // A1 - ACS 712 Out
 #define  SOL_AMPS_SCALE (5.0/(1024*0.185))  // the scaling value for raw adc reading to get solar amps
 #define ANALOG_PIN_BATTERY_VOLTAGE 2        // A2 - Voltage divider (battery)
-#define  BATTERY_VOLTAGE_DIVIDER_R1 100000  //  voltage divider R1 in ohms
-#define  BATTERY_VOLTAGE_DIVIDER_R2 20000   //  voltage divider R2 in ohms
+#define  BATTERY_VOLTAGE_DIVIDER_R1 99700   //  voltage divider R1 in ohms
+#define  BATTERY_VOLTAGE_DIVIDER_R2 46700   //  voltage divider R2 in ohms
 #define ANALOG_PIN_LCD_SDA 4                // A4 - LCD SDA
 #define ANALOG_PIN_LCD_SCL 5                // A5 - LCD SCL
 #define DIGITAL_PIN_ESP8266_TX 2            // D2 - ESP8266 Tx
@@ -53,7 +53,7 @@
 #define DIGITAL_PIN_2104_MOSFET_IN 9        // D9 - 2104 MOSFET driver IN (OUTPUT)
 #define DIGITAL_PIN_GREEN_LED 11            // D11- Green LED (OUTPUT)
 #define DIGITAL_PIN_YELLOW_LED 12           // D12- Yellow LED (OUTPUT)
-#define DIGITAL_PIN_RED 13                  // D13- Red LED (OUTPUT)
+#define DIGITAL_PIN_RED_LED 13              // D13- Red LED (OUTPUT)
 
 // Full schematic is given at http://www.instructables.com/files/orig/F9A/LLR8/IAPASVA1/F9ALLR8IAPASVA1.pdf
 
@@ -73,10 +73,13 @@ String apiKey = "DPK8RMTFY2B1XCAF";
 // 1 - POWER DUMP: Load ON when there is solar power and the battery is above BATT_FLOAT (charged)
 #define LOAD_ALGORITHM 0
 
-#define AVG_NUM 8                      // number of iterations of the adc routine to average the adc readings
+#define AVG_NUM 4                      // number of iterations of the adc routine to average the adc readings
 
 // ACS 712 Current Sensor is used. Current Measured = (5/(1024 *0.185))*ADC - (2.5/0.185) 
-#define BAT_VOLTS_SCALE 0.029296875        // the scaling value for raw adc reading to get battery volts 
+
+// the scaling value for raw adc reading to get battery volts 
+#define BAT_VOLTS_SCALE (5.17/1024/(BATTERY_VOLTAGE_DIVIDER_R2/(float)(BATTERY_VOLTAGE_DIVIDER_R1+BATTERY_VOLTAGE_DIVIDER_R2)))
+
 
 #define PWM_FULL 1023                // the actual value used by the Timer1 routines for 100% pwm duty cycle
 #define PWM_MAX 100                  // the value for pwm duty cyle 0-100%
@@ -200,7 +203,7 @@ byte backslash_char[8] {
 
 float sol_amps;                       // solar amps 
 float sol_volts;                      // solar volts 
-float bat_volts;                      // battery volts 
+float bat_volts;                      // battery volts
 float sol_watts;                      // solar watts
 float old_sol_watts = 0;              // solar watts from previous time through ppt routine 
 unsigned int seconds = 0;             // seconds from timer routine
@@ -216,7 +219,7 @@ enum charger_mode {off, on, bulk, bat_float} charger_state;    // enumerated var
 // set the LCD address to 0x27 for a 20 chars 4 line display
 // Set the pins on the I2C chip used for LCD connections:
 //                    addr, en,rw,rs,d4,d5,d6,d7,bl,blpol
-LiquidCrystal_I2C lcd(0x27, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);  // Set the LCD I2C address
+LiquidCrystal_I2C lcd(0x27, 20, 4);  // Set the LCD I2C address
 
 
 //------------------------------------------------------------------------------------------------------
@@ -228,7 +231,7 @@ void setup()                           // run once, when the sketch starts
   pinMode(DIGITAL_PIN_2104_MOSFET_SD, OUTPUT);     // sets the digital pin as output
   TURN_OFF_MOSFETS;                    // turn off MOSFET driver chip
   charger_state = off;                 // start with charger state as off
-  lcd.begin(20,4);                     // initialize the lcd for 16 chars 2 lines, turn on backlight
+  lcd.begin();                     // initialize the lcd for 16 chars 2 lines, turn on backlight
 
   // create the LCD special characters. Characters 0-5 are the various battery fullness icons
   // icon 7 is for the PWM icon, and icon 8 is for the solar array
@@ -290,7 +293,8 @@ int read_adc(int channel){
   int sum = 0;
   int temp;
   int i;
-  
+  analogRead(channel);
+  delayMicroseconds(50);               // skip the first sample
   for (i=0; i<AVG_NUM; i++) {          // loop through reading raw adc values AVG_NUM number of times  
     temp = analogRead(channel);        // read the input pin  
     sum += temp;                       // store sum for averaging
@@ -307,7 +311,7 @@ void read_data(void) {
   
   sol_amps = (read_adc(ANALOG_PIN_SOLAR_AMPS_FROM_ACS712) * SOL_AMPS_SCALE -13.51);    //input of solar amps
   sol_volts = read_adc(ANALOG_PIN_SOLAR_VOLTAGE_DIVIDER) * SOL_VOLTS_SCALE;          //input of solar volts 
-  bat_volts = read_adc(ANALOG_PIN_BATTERY_VOLTAGE) * BAT_VOLTS_SCALE;          //input of battery volts 
+  bat_volts = read_adc(ANALOG_PIN_BATTERY_VOLTAGE) * BAT_VOLTS_SCALE;
   sol_watts = sol_amps * sol_volts ;                               //calculations of solar watts                  
 }
 
@@ -578,7 +582,6 @@ void lcd_display()
  lcd.setCursor(8, 1);
  lcd.print(bat_volts);
  lcd.setCursor(8,2);
-
  if (charger_state == on) 
  lcd.print("on   ");
  else if (charger_state == off)
