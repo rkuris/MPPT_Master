@@ -190,8 +190,8 @@ void setup()                           // run once, when the sketch starts
   lcd.setCursor(0, 0);
   lcd.print("SOL");
   lcd.setCursor(4, 0);
-  lcd.write(SOLAR_ICON);
-  lcd.setCursor(8, 0);
+  //lcd.write(SOLAR_ICON);
+  lcd.setCursor(0, 2);
   lcd.print("BAT");
   // configure the watchdog with:
   // WDIE: Watchdog Interrupt Enable
@@ -370,17 +370,17 @@ void lcd_display()
  lcd.setCursor(0, 1);
  lcd.print(sol_volts);
  lcd.print("V ");
- lcd.setCursor(0, 2);
- lcd.print(sol_amps);
- lcd.print("A ");  
- lcd.setCursor(0, 3);
- lcd.print(sol_watts);
- lcd.print("W "); 
- lcd.setCursor(8, 1);
- lcd.print(bat_volts);
- lcd.setCursor(8,2);
+ //lcd.setCursor(0, 2);
+ //lcd.print(sol_amps);
+ //lcd.print("A ");  
+ //lcd.setCursor(0, 3);
+ //lcd.print(sol_watts);
+ //lcd.print("W "); 
+ //lcd.setCursor(8, 1);
+ //lcd.print(bat_volts);
+ //lcd.setCursor(8,2);
 
- if (charger_state == on) 
+ /*if (charger_state == on) 
  lcd.print("on   ");
  else if (charger_state == off)
  lcd.print("off  ");
@@ -391,7 +391,7 @@ void lcd_display()
  lcd.print("     ");
  lcd.setCursor(8,2);
  lcd.print("float");
- }
+ } */
  
  //-----------------------------------------------------------
  //--------------------Battery State Of Charge ---------------
@@ -402,8 +402,10 @@ void lcd_display()
  else if (pct > 100)
      pct = 100;
 
+/*
  lcd.setCursor(12,0);
  lcd.print((char)(pct*5/100));
+*/
 
  lcd.setCursor(8,3);
  pct = pct - (pct%10);
