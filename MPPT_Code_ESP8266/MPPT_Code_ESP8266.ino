@@ -35,8 +35,8 @@
 #define SOLAR_VOLTAGE_DIVIDER_R2 270     // voltage divider R2 for solar voltage in ohms
 #define SOLAR_MAXIMUM_VOLTAGE 21.6       // open circuit voltage, just to check your math
 
-#define BATTERY_VOLTAGE_DIVIDER_R1 992  // voltage divider R1 for battery voltage in ohms
-#define BATTERY_VOLTAGE_DIVIDER_R2 271   // voltage divider R2 for battery voltage in ohms
+#define BATTERY_VOLTAGE_DIVIDER_R1 99600  // voltage divider R1 for battery voltage in ohms
+#define BATTERY_VOLTAGE_DIVIDER_R2 46700   // voltage divider R2 for battery voltage in ohms
 
 #define VOLTAGE_DIVIDER(Vcc, R1, R2) ((Vcc)/1024.0*((R1)+(R2))/(R2))
 #define SOLAR_VOLTAGE_SCALE(Vcc) VOLTAGE_DIVIDER(Vcc, SOLAR_VOLTAGE_DIVIDER_R1, SOLAR_VOLTAGE_DIVIDER_R2)
@@ -51,7 +51,7 @@
 #define OFF FALSE
 
 #define MAX_BAT_VOLTS 14.70         // maximum battery voltage
-#define BATT_FLOAT 14.10            // charger turns OFF above this voltage
+#define BATT_FLOAT 13.70            // charger turns OFF above this voltage
 #define BATT_ON 12.6                // charger turns ON below this voltage
   
 //-----------------------------------------------------------------------------------------------------
@@ -153,7 +153,7 @@ enum charger_mode {off, on, bulk, bat_float} charger_state;    // enumerated var
 // set the LCD address to 0x27 for a 20 chars 4 line display
 // Set the pins on the I2C chip used for LCD connections:
 //                    addr, en,rw,rs,d4,d5,d6,d7,bl,blpol
-LiquidCrystal_I2C lcd(0x27, 20, 4);  // Set the LCD I2C address
+LiquidCrystal_I2C lcd(0x3f, 20, 4);  // Set the LCD I2C address
 Alarm alarm(ALARM_PIN);
 
 //------------------------------------------------------------------------------------------------------
@@ -376,8 +376,9 @@ void lcd_display()
  //lcd.setCursor(0, 3);
  //lcd.print(sol_watts);
  //lcd.print("W "); 
- //lcd.setCursor(8, 1);
- //lcd.print(bat_volts);
+ lcd.setCursor(0, 3);
+ lcd.print(bat_volts);
+ lcd.print("V ");
  //lcd.setCursor(8,2);
 
  /*if (charger_state == on) 
@@ -418,7 +419,7 @@ void lcd_display()
  lcd.setCursor(15,2);
  lcd.print("Solr");
  lcd.setCursor(15,3);
- if (load_status)
+ if (charger_state == on )
  {
     lcd.print("On  ");
  }
